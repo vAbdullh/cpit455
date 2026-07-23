@@ -35,17 +35,62 @@ if (error != null) {
     String user = "root";
     String password = "root123";
     try {
-        Class.forName("com.mysql.cj.jdbc.Driver");
-        Connection conn = DriverManager.getConnection(url, user, password);
-        String sql = "INSERT INTO student(name, email, gpa) VALUES (?, ?, ?)";
-        PreparedStatement ps = conn.prepareStatement(sql);
-        ps.setString(1, name.trim());
-        ps.setString(2, email);
-        ps.setDouble(3, gpa);
-        ps.executeUpdate();
-        ps.close();
-        conn.close();
-        out.println("<h3>Student added successfully</h3>");
+Class.forName("com.mysql.cj.jdbc.Driver");
+
+Connection conn = DriverManager.getConnection(url, user, password);
+
+try {
+
+    // Start transaction
+    conn.setAutoCommit(false);
+
+
+    String sql = "INSERT INTO student(name, email, gpa) VALUES (?, ?, ?)";
+
+    PreparedStatement ps = conn.prepareStatement(sql);
+
+    ps.setString(1, name.trim());
+    ps.setString(2, email);
+    ps.setDouble(3, gpa);
+
+
+    ps.executeUpdate();
+
+
+    // Only for Task 4 rollback testing
+    if (request.getParameter("fail") != null) {
+        throw new Exception("Simulated failure");
+    }
+
+
+    // Save transaction
+    conn.commit();
+
+    ps.close();
+
+    out.println("<h3>Student added successfully</h3>");
+
+
+} catch(Exception e) {
+
+
+    // Undo insert if something fails
+    conn.rollback();
+
+    response.setStatus(500);
+
+    out.println(
+        "<h3>Transaction rollback: " 
+        + e.getMessage() 
+        + "</h3>"
+    );
+
+
+} finally {
+
+    conn.close();
+
+}
     } catch (Exception e) {
         out.println("<h3>Error: " + e.getMessage() + "</h3>");
     }
