@@ -25,25 +25,19 @@
             color: red;
         }
     </style>
-
 </head>
 
 <body>
 
 <h2>Student List</h2>
 
-
 <form method="GET" action="viewstudents.jsp">
-
     Search Name:
-    <input type="text" name="search">
-
+    <input type="text" name="search" value="<%= request.getParameter("search") != null ? request.getParameter("search") : "" %>">
     <input type="submit" value="Search">
-
 </form>
 
 <br>
-
 
 <table>
 
@@ -54,110 +48,132 @@
     <th>GPA</th>
 </tr>
 
-
 <%
 
 String search = request.getParameter("search");
 
-String url = "jdbc:mysql://localhost:3306/universitydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+String primaryUrl =
+"jdbc:mysql://localhost:3306/universitydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+
+String backupUrl =
+"jdbc:mysql://localhost:3306/universitydb_backup?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+
 String user = "root";
 String password = "root123";
 
+Connection conn = null;
+PreparedStatement ps = null;
+ResultSet rs = null;
+
+boolean usingBackup = false;
 
 try {
 
     Class.forName("com.mysql.cj.jdbc.Driver");
 
-    Connection conn = DriverManager.getConnection(url,user,password);
+    try {
 
+        // Try PRIMARY database
+        conn = DriverManager.getConnection(primaryUrl, user, password);
 
-    String sql;
+        String sql;
 
-    PreparedStatement ps;
+        if (search != null && !search.trim().isEmpty()) {
+            sql = "SELECT * FROM student WHERE name LIKE ?";
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, "%" + search + "%");
+        } else {
+            sql = "SELECT * FROM student";
+            ps = conn.prepareStatement(sql);
+        }
 
+        rs = ps.executeQuery();
 
-    if(search != null && !search.isEmpty()) {
+    } catch (Exception primaryError) {
 
-        sql = "SELECT * FROM student WHERE name LIKE ?";
+        // If anything fails, switch to BACKUP database
+        usingBackup = true;
 
-        ps = conn.prepareStatement(sql);
+        try {
+            if (conn != null) conn.close();
+        } catch (Exception ignored) {}
 
-        ps.setString(1, "%" + search + "%");
+        conn = DriverManager.getConnection(backupUrl, user, password);
 
-    } else {
+        String sql;
 
-        sql = "SELECT * FROM student";
+        if (search != null && !search.trim().isEmpty()) {
+            sql = "SELECT * FROM student WHERE name LIKE ?";
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, "%" + search + "%");
+        } else {
+            sql = "SELECT * FROM student";
+            ps = conn.prepareStatement(sql);
+        }
 
-        ps = conn.prepareStatement(sql);
-
+        rs = ps.executeQuery();
     }
 
+    if (usingBackup) {
+        out.println("<p><b>Using BACKUP database</b></p>");
+    } else {
+        out.println("<p><b>Using PRIMARY database</b></p>");
+    }
 
-    ResultSet rs = ps.executeQuery();
-
-
-    while(rs.next()) {
+    while (rs.next()) {
 
         double gpa = rs.getDouble("gpa");
 
 %>
 
-
 <tr>
 
-<td>
-<%= rs.getInt("student_id") %>
-</td>
+    <td><%= rs.getInt("student_id") %></td>
 
+    <td><%= rs.getString("name") %></td>
 
-<td>
-<%= rs.getString("name") %>
-</td>
+    <td><%= rs.getString("email") %></td>
 
-
-<td>
-<%= rs.getString("email") %>
-</td>
-
-
-<td class="<%= gpa < 3.50 ? "low-gpa" : "" %>">
-
-<%= gpa %>
-
-</td>
-
+    <td class="<%= gpa < 3.50 ? "low-gpa" : "" %>">
+        <%= gpa %>
+    </td>
 
 </tr>
-
 
 <%
 
     }
 
+} catch (Exception e) {
 
-    rs.close();
-    ps.close();
-    conn.close();
+    out.println("<tr><td colspan='4'>");
+    out.println("<b>Error:</b> " + e.getMessage());
+    out.println("</td></tr>");
 
+} finally {
 
-} catch(Exception e) {
+    try {
+        if (rs != null) rs.close();
+    } catch (Exception ignored) {}
 
-    out.println("<h3>Error: "+e.getMessage()+"</h3>");
+    try {
+        if (ps != null) ps.close();
+    } catch (Exception ignored) {}
 
+    try {
+        if (conn != null) conn.close();
+    } catch (Exception ignored) {}
 }
 
 %>
 
-
 </table>
-
 
 <br>
 
 <a href="addstudent.jsp">
-Add New Student
+    Add New Student
 </a>
-
 
 </body>
 </html>
