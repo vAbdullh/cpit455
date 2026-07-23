@@ -1,176 +1,57 @@
 <%@ page import="java.sql.*" %>
-
-<!DOCTYPE html>
 <html>
-<head>
-    <title>View Students</title>
-
-    <style>
-        table {
-            border-collapse: collapse;
-            width: 80%;
-        }
-
-        th, td {
-            border: 1px solid black;
-            padding: 8px;
-            text-align: center;
-        }
-
-        th {
-            background-color: #ddd;
-        }
-
-        .low-gpa {
-            color: red;
-        }
-    </style>
-
-</head>
-
+<head><title>Add Student Result</title></head>
 <body>
-
-<h2>Student List</h2>
-
-
-<form method="GET" action="viewstudents.jsp">
-
-    Search Name:
-    <input type="text" name="search">
-
-    <input type="submit" value="Search">
-
-</form>
-
-<br>
-
-
-<table>
-
-<tr>
-    <th>ID</th>
-    <th>Name</th>
-    <th>Email</th>
-    <th>GPA</th>
-    <th>Action</th>
-</tr>
-
-
+<h2>Add Student Result</h2>
 <%
+String name = request.getParameter("name");
+String email = request.getParameter("email");
+String gpaParam = request.getParameter("gpa");
 
-String search = request.getParameter("search");
+// ---- FR-1 Checking layer: validate BEFORE any DB code ----
+String error = null;
+double gpa = 0;
 
-String url = "jdbc:mysql://localhost:3306/universitydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-String user = "root";
-String password = "root123";
-
-
-try {
-
-    Class.forName("com.mysql.cj.jdbc.Driver");
-
-    Connection conn = DriverManager.getConnection(url,user,password);
-
-
-    String sql;
-
-    PreparedStatement ps;
-
-
-    if(search != null && !search.isEmpty()) {
-
-        sql = "SELECT * FROM student WHERE name LIKE ?";
-
-        ps = conn.prepareStatement(sql);
-
-        ps.setString(1, "%" + search + "%");
-
-    } else {
-
-        sql = "SELECT * FROM student";
-
-        ps = conn.prepareStatement(sql);
-
+if (name == null || !name.trim().matches("^[a-zA-Z ]{2,50}$")) {
+    error = "Name must be 2-50 letters only";
+} else if (email == null || !email.matches("^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)*\\.[a-zA-Z]{2,}$")) {
+    error = "Invalid email format";
+} else {
+    try {
+        gpa = Double.parseDouble(gpaParam);
+        if (gpa < 0.0 || gpa > 4.0) {
+            error = "GPA must be between 0.0 and 4.0";
+        }
+    } catch (Exception e) {
+        error = "GPA must be a valid number";
     }
-
-
-    ResultSet rs = ps.executeQuery();
-
-
-    while(rs.next()) {
-
-        double gpa = rs.getDouble("gpa");
-
-%>
-
-
-<tr>
-
-<td>
-<%= rs.getInt("student_id") %>
-</td>
-
-
-<td>
-<%= rs.getString("name") %>
-</td>
-
-
-<td>
-<%= rs.getString("email") %>
-</td>
-
-
-<td class="<%= gpa < 3.50 ? "low-gpa" : "" %>">
-
-<%= gpa %>
-
-</td>
-
-
-<td>
-
-<a href="deletestudent.jsp?id=<%=rs.getInt("student_id")%>"
-   onclick="return confirm('Delete this student?');">
-
-Delete
-
-</a>
-
-</td>
-
-
-</tr>
-
-
-<%
-
-    }
-
-
-    rs.close();
-    ps.close();
-    conn.close();
-
-
-} catch(Exception e) {
-
-    out.println("<h3>Error: "+e.getMessage()+"</h3>");
-
 }
 
+if (error != null) {
+    out.println("<h3>Rejected: " + error + "</h3>");
+} else {
+    // ---- validation passed, now safe to write to DB ----
+    String url = "jdbc:mysql://localhost:3306/universitydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+    String user = "root";
+    String password = "root123";
+    try {
+        Class.forName("com.mysql.cj.jdbc.Driver");
+        Connection conn = DriverManager.getConnection(url, user, password);
+        String sql = "INSERT INTO student(name, email, gpa) VALUES (?, ?, ?)";
+        PreparedStatement ps = conn.prepareStatement(sql);
+        ps.setString(1, name.trim());
+        ps.setString(2, email);
+        ps.setDouble(3, gpa);
+        ps.executeUpdate();
+        ps.close();
+        conn.close();
+        out.println("<h3>Student added successfully</h3>");
+    } catch (Exception e) {
+        out.println("<h3>Error: " + e.getMessage() + "</h3>");
+    }
+}
 %>
-
-
-</table>
-
-
 <br>
-
-<a href="addstudent.jsp">
-Add New Student
-</a>
-
-
+<a href="viewstudents.jsp">Back to Students</a>
 </body>
 </html>

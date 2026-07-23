@@ -1,0 +1,36 @@
+# NetBeans files
+/nbproject/private/
+/nbbuild/
+/dist/
+/build/
+/nbdist/
+
+# Compiled Java files
+*.class
+
+# GlassFish generated files
+/gfdeploy/
+/glassfish/
+
+# NetBeans cache
+/.cache/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Database credentials (if you create config files later)
+.env
+*.properties
