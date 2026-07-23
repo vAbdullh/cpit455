@@ -34,3 +34,9 @@ Thumbs.db
 # Database credentials (if you create config files later)
 .env
 *.properties
+
+# python environment
+.venv
+venv
+__pycache__
+*.pyc
