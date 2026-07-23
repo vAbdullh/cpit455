@@ -8,7 +8,6 @@
     String email = request.getParameter("email");
     String gpaParam = request.getParameter("gpa");
 
-    // ---- FR-1 Checking layer: validate BEFORE any DB code ----
     String error = null;
     double gpa = 0;
 
@@ -30,69 +29,84 @@
     if (error != null) {
         out.println("<h3>Rejected: " + error + "</h3>");
     } else {
-        // ---- validation passed, now safe to write to DB ----
         String url = "jdbc:mysql://localhost:3306/universitydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
         String user = "root";
         String password = "root123";
+        Connection conn = null;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
+            conn = DriverManager.getConnection(url, user, password);
+            conn.setAutoCommit(false);
 
-            Connection conn = DriverManager.getConnection(url, user, password);
+            // ---- Protection System: independent, simple guard ----
+            boolean permitted = true;
+            String vetoReason = null;
 
-            try {
+            if (gpa < 0.0 || gpa > 4.0) {
+                permitted = false;
+                vetoReason = "GPA out of bounds";
+            }
 
-                // Start transaction
-                conn.setAutoCommit(false);
-
-
-                String sql = "INSERT INTO student(name, email, gpa) VALUES (?, ?, ?)";
-
-                PreparedStatement ps = conn.prepareStatement(sql);
-
-                ps.setString(1, name.trim());
-                ps.setString(2, email);
-                ps.setDouble(3, gpa);
-
-
-                ps.executeUpdate();
-
-
-                // Only for Task 4 rollback testing
-                if (request.getParameter("fail") != null) {
-                    throw new Exception("Simulated failure");
+            if (permitted) {
+                PreparedStatement dupCheck = conn.prepareStatement(
+                "SELECT COUNT(*) FROM student WHERE email = ?");
+                dupCheck.setString(1, email);
+                ResultSet dupRs = dupCheck.executeQuery();
+                dupRs.next();
+                if (dupRs.getInt(1) > 0) {
+                    permitted = false;
+                    vetoReason = "Duplicate email - student already registered";
                 }
+                dupRs.close();
+                dupCheck.close();
+            }
 
-
-                // Save transaction
-                conn.commit();
-
-                ps.close();
-
-                out.println("<h3>Student added successfully</h3>");
-
-
-            } catch(Exception e) {
-
-
-                // Undo insert if something fails
+            if (!permitted) {
                 conn.rollback();
+                out.println("<h3>Vetoed by protection system: " + vetoReason + "</h3>");
+            } else {
+                PreparedStatement ps1 = conn.prepareStatement(
+                "INSERT INTO student(name, email, gpa) VALUES (?, ?, ?)",
+                Statement.RETURN_GENERATED_KEYS);
+                ps1.setString(1, name.trim());
+                ps1.setString(2, email);
+                ps1.setDouble(3, gpa);
+                ps1.executeUpdate();
 
-                response.setStatus(500);
+                ResultSet keys = ps1.getGeneratedKeys();
+                int newId = 0;
+                if (keys.next()) {
+                    newId = keys.getInt(1);
+                }
+                keys.close();
+                ps1.close();
 
-                out.println(
-                "<h3>Transaction rollback: "
-                + e.getMessage()
-                + "</h3>"
-                );
+                PreparedStatement ps2 = conn.prepareStatement(
+                "INSERT INTO audit_log(action, student_id) VALUES (?, ?)");
+                ps2.setString(1, "INSERT");
+                ps2.setInt(2, newId);
+                ps2.executeUpdate();
+                ps2.close();
 
-
-            } finally {
-
-                conn.close();
-
+                conn.commit();
+                out.println("<h3>Student added successfully</h3>");
             }
         } catch (Exception e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException se) {
+                }
+            }
             out.println("<h3>Error: " + e.getMessage() + "</h3>");
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException se) {
+                }
+            }
         }
     }
 
