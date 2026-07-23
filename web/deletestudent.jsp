@@ -8,14 +8,13 @@
     String error = null;
     int id = 0;
 
-    // ---- FR-1 Checking layer: validate BEFORE any DB code ----
     if (idParam == null || idParam.trim().isEmpty()) {
         error = "Student ID is required";
     } else {
         try {
             id = Integer.parseInt(idParam.trim());
             if (id <= 0) error = "Student ID must be positive";
-        } catch (NumberFormatException e) {
+        } catch (Exception e) {
             error = "Student ID must be a number";
         }
     }
@@ -26,22 +25,46 @@
         String url = "jdbc:mysql://localhost:3306/universitydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
         String user = "root";
         String password = "root123";
+        Connection conn = null;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            Connection conn = DriverManager.getConnection(url, user, password);
-            String sql = "DELETE FROM student WHERE student_id=?";
-            PreparedStatement ps = conn.prepareStatement(sql);
+            conn = DriverManager.getConnection(url, user, password);
+            conn.setAutoCommit(false);
+
+            PreparedStatement ps = conn.prepareStatement("DELETE FROM student WHERE student_id=?");
             ps.setInt(1, id);
             int result = ps.executeUpdate();
+            ps.close();
+
             if (result > 0) {
+                PreparedStatement ps2 = conn.prepareStatement(
+                "INSERT INTO audit_log(action, student_id) VALUES (?, ?)");
+                ps2.setString(1, "DELETE");
+                ps2.setInt(2, id);
+                ps2.executeUpdate();
+                ps2.close();
+                conn.commit();
                 out.println("<h3>Student deleted successfully</h3>");
             } else {
+                conn.rollback();
                 out.println("<h3>Student not found</h3>");
             }
-            ps.close();
-            conn.close();
         } catch (Exception e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException se) {
+                }
+            }
             out.println("<h3>Error: " + e.getMessage() + "</h3>");
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException se) {
+                }
+            }
         }
     }
 
