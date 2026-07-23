@@ -2,10 +2,10 @@
 
 <!DOCTYPE html>
 <html>
-<head>
-    <title>View Students</title>
+    <head>
+        <title>View Students</title>
 
-    <style>
+        <style>
         table {
             border-collapse: collapse;
             width: 80%;
@@ -25,155 +25,158 @@
             color: red;
         }
     </style>
-</head>
+    </head>
 
-<body>
+    <body>
 
-<h2>Student List</h2>
+        <h2>Student List</h2>
 
-<form method="GET" action="viewstudents.jsp">
-    Search Name:
-    <input type="text" name="search" value="<%= request.getParameter("search") != null ? request.getParameter("search") : "" %>">
-    <input type="submit" value="Search">
-</form>
+        <form method="GET" action="viewstudents.jsp">
+            Search Name:
+            <input type="text" name="search" value="<%= request.getParameter("search") != null ? request.getParameter("search") : "" %>">
+            <input type="submit" value="Search">
+        </form>
 
-<br>
+        <br>
 
-<table>
+        <table>
 
-<tr>
-    <th>ID</th>
-    <th>Name</th>
-    <th>Email</th>
-    <th>GPA</th>
-</tr>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>GPA</th>
+            </tr>
 
-<%
+            <%
+    String search = request.getParameter("search");
 
-String search = request.getParameter("search");
+    String primaryUrl =
+    "jdbc:mysql://localhost:3306/universitydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
 
-String primaryUrl =
-"jdbc:mysql://localhost:3306/universitydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+    String backupUrl =
+    "jdbc:mysql://localhost:3306/universitydb_backup?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
 
-String backupUrl =
-"jdbc:mysql://localhost:3306/universitydb_backup?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+    String user = "root";
+    String password = "root123";
 
-String user = "root";
-String password = "root123";
+    Connection conn = null;
+    PreparedStatement ps = null;
+    ResultSet rs = null;
 
-Connection conn = null;
-PreparedStatement ps = null;
-ResultSet rs = null;
-
-boolean usingBackup = false;
-
-try {
-
-    Class.forName("com.mysql.cj.jdbc.Driver");
+    boolean usingBackup = false;
 
     try {
 
-        // Try PRIMARY database
-        conn = DriverManager.getConnection(primaryUrl, user, password);
+        Class.forName("com.mysql.cj.jdbc.Driver");
 
-        String sql;
+        try {
 
-        if (search != null && !search.trim().isEmpty()) {
-            sql = "SELECT * FROM student WHERE name LIKE ?";
-            ps = conn.prepareStatement(sql);
-            ps.setString(1, "%" + search + "%");
-        } else {
-            sql = "SELECT * FROM student";
-            ps = conn.prepareStatement(sql);
+            // Try PRIMARY database
+            conn = DriverManager.getConnection(primaryUrl, user, password);
+
+            String sql;
+
+            if (search != null && !search.trim().isEmpty()) {
+                sql = "SELECT * FROM student WHERE name LIKE ?";
+                ps = conn.prepareStatement(sql);
+                ps.setString(1, "%" + search + "%");
+            } else {
+                sql = "SELECT * FROM student";
+                ps = conn.prepareStatement(sql);
+            }
+
+            rs = ps.executeQuery();
+
+        } catch (Exception primaryError) {
+
+            // If anything fails, switch to BACKUP database
+            usingBackup = true;
+
+            try {
+                if (conn != null) conn.close();
+            } catch (Exception ignored) {
+            }
+
+            conn = DriverManager.getConnection(backupUrl, user, password);
+
+            String sql;
+
+            if (search != null && !search.trim().isEmpty()) {
+                sql = "SELECT * FROM student WHERE name LIKE ?";
+                ps = conn.prepareStatement(sql);
+                ps.setString(1, "%" + search + "%");
+            } else {
+                sql = "SELECT * FROM student";
+                ps = conn.prepareStatement(sql);
+            }
+
+            rs = ps.executeQuery();
         }
 
-        rs = ps.executeQuery();
+        if (usingBackup) {
+            out.println("<p><b>Using BACKUP database</b></p>");
+        } else {
+            out.println("<p><b>Using PRIMARY database</b></p>");
+        }
 
-    } catch (Exception primaryError) {
+        while (rs.next()) {
 
-        // If anything fails, switch to BACKUP database
-        usingBackup = true;
+            double gpa = rs.getDouble("gpa");
+
+%>
+
+            <tr>
+
+                <td><%= rs.getInt("student_id") %></td>
+
+                <td><%= rs.getString("name") %></td>
+
+                <td><%= rs.getString("email") %></td>
+
+                <td class="<%= gpa < 3.50 ? "low-gpa" : "" %>">
+                    <%= gpa %>
+                </td>
+
+            </tr>
+
+            <%
+
+    }
+
+    } catch (Exception e) {
+
+        out.println("<tr><td colspan='4'>");
+        out.println("<b>Error:</b> " + e.getMessage());
+        out.println("</td></tr>");
+
+    } finally {
+
+        try {
+            if (rs != null) rs.close();
+        } catch (Exception ignored) {
+        }
+
+        try {
+            if (ps != null) ps.close();
+        } catch (Exception ignored) {
+        }
 
         try {
             if (conn != null) conn.close();
-        } catch (Exception ignored) {}
-
-        conn = DriverManager.getConnection(backupUrl, user, password);
-
-        String sql;
-
-        if (search != null && !search.trim().isEmpty()) {
-            sql = "SELECT * FROM student WHERE name LIKE ?";
-            ps = conn.prepareStatement(sql);
-            ps.setString(1, "%" + search + "%");
-        } else {
-            sql = "SELECT * FROM student";
-            ps = conn.prepareStatement(sql);
+        } catch (Exception ignored) {
         }
-
-        rs = ps.executeQuery();
     }
-
-    if (usingBackup) {
-        out.println("<p><b>Using BACKUP database</b></p>");
-    } else {
-        out.println("<p><b>Using PRIMARY database</b></p>");
-    }
-
-    while (rs.next()) {
-
-        double gpa = rs.getDouble("gpa");
 
 %>
 
-<tr>
+        </table>
 
-    <td><%= rs.getInt("student_id") %></td>
+        <br>
 
-    <td><%= rs.getString("name") %></td>
+        <a href="addstudent.jsp">
+            Add New Student
+        </a>
 
-    <td><%= rs.getString("email") %></td>
-
-    <td class="<%= gpa < 3.50 ? "low-gpa" : "" %>">
-        <%= gpa %>
-    </td>
-
-</tr>
-
-<%
-
-    }
-
-} catch (Exception e) {
-
-    out.println("<tr><td colspan='4'>");
-    out.println("<b>Error:</b> " + e.getMessage());
-    out.println("</td></tr>");
-
-} finally {
-
-    try {
-        if (rs != null) rs.close();
-    } catch (Exception ignored) {}
-
-    try {
-        if (ps != null) ps.close();
-    } catch (Exception ignored) {}
-
-    try {
-        if (conn != null) conn.close();
-    } catch (Exception ignored) {}
-}
-
-%>
-
-</table>
-
-<br>
-
-<a href="addstudent.jsp">
-    Add New Student
-</a>
-
-</body>
+    </body>
 </html>

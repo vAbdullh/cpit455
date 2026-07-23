@@ -1,102 +1,103 @@
 <%@ page import="java.sql.*" %>
 <html>
-<head><title>Add Student Result</title></head>
-<body>
-<h2>Add Student Result</h2>
-<%
-String name = request.getParameter("name");
-String email = request.getParameter("email");
-String gpaParam = request.getParameter("gpa");
+    <head><title>Add Student Result</title></head>
+    <body>
+        <h2>Add Student Result</h2>
+        <%
+    String name = request.getParameter("name");
+    String email = request.getParameter("email");
+    String gpaParam = request.getParameter("gpa");
 
-// ---- FR-1 Checking layer: validate BEFORE any DB code ----
-String error = null;
-double gpa = 0;
+    // ---- FR-1 Checking layer: validate BEFORE any DB code ----
+    String error = null;
+    double gpa = 0;
 
-if (name == null || !name.trim().matches("^[a-zA-Z ]{2,50}$")) {
-    error = "Name must be 2-50 letters only";
-} else if (email == null || !email.matches("^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)*\\.[a-zA-Z]{2,}$")) {
-    error = "Invalid email format";
-} else {
-    try {
-        gpa = Double.parseDouble(gpaParam);
-        if (gpa < 0.0 || gpa > 4.0) {
-            error = "GPA must be between 0.0 and 4.0";
+    if (name == null || !name.trim().matches("^[a-zA-Z ]{2,50}$")) {
+        error = "Name must be 2-50 letters only";
+    } else if (email == null || !email.matches("^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)*\\.[a-zA-Z]{2,}$")) {
+        error = "Invalid email format";
+    } else {
+        try {
+            gpa = Double.parseDouble(gpaParam);
+            if (gpa < 0.0 || gpa > 4.0) {
+                error = "GPA must be between 0.0 and 4.0";
+            }
+        } catch (Exception e) {
+            error = "GPA must be a valid number";
         }
-    } catch (Exception e) {
-        error = "GPA must be a valid number";
-    }
-}
-
-if (error != null) {
-    out.println("<h3>Rejected: " + error + "</h3>");
-} else {
-    // ---- validation passed, now safe to write to DB ----
-    String url = "jdbc:mysql://localhost:3306/universitydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-    String user = "root";
-    String password = "root123";
-    try {
-Class.forName("com.mysql.cj.jdbc.Driver");
-
-Connection conn = DriverManager.getConnection(url, user, password);
-
-try {
-
-    // Start transaction
-    conn.setAutoCommit(false);
-
-
-    String sql = "INSERT INTO student(name, email, gpa) VALUES (?, ?, ?)";
-
-    PreparedStatement ps = conn.prepareStatement(sql);
-
-    ps.setString(1, name.trim());
-    ps.setString(2, email);
-    ps.setDouble(3, gpa);
-
-
-    ps.executeUpdate();
-
-
-    // Only for Task 4 rollback testing
-    if (request.getParameter("fail") != null) {
-        throw new Exception("Simulated failure");
     }
 
+    if (error != null) {
+        out.println("<h3>Rejected: " + error + "</h3>");
+    } else {
+        // ---- validation passed, now safe to write to DB ----
+        String url = "jdbc:mysql://localhost:3306/universitydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+        String user = "root";
+        String password = "root123";
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
 
-    // Save transaction
-    conn.commit();
+            Connection conn = DriverManager.getConnection(url, user, password);
 
-    ps.close();
+            try {
 
-    out.println("<h3>Student added successfully</h3>");
-
-
-} catch(Exception e) {
-
-
-    // Undo insert if something fails
-    conn.rollback();
-
-    response.setStatus(500);
-
-    out.println(
-        "<h3>Transaction rollback: " 
-        + e.getMessage() 
-        + "</h3>"
-    );
+                // Start transaction
+                conn.setAutoCommit(false);
 
 
-} finally {
+                String sql = "INSERT INTO student(name, email, gpa) VALUES (?, ?, ?)";
 
-    conn.close();
+                PreparedStatement ps = conn.prepareStatement(sql);
 
-}
-    } catch (Exception e) {
-        out.println("<h3>Error: " + e.getMessage() + "</h3>");
+                ps.setString(1, name.trim());
+                ps.setString(2, email);
+                ps.setDouble(3, gpa);
+
+
+                ps.executeUpdate();
+
+
+                // Only for Task 4 rollback testing
+                if (request.getParameter("fail") != null) {
+                    throw new Exception("Simulated failure");
+                }
+
+
+                // Save transaction
+                conn.commit();
+
+                ps.close();
+
+                out.println("<h3>Student added successfully</h3>");
+
+
+            } catch(Exception e) {
+
+
+                // Undo insert if something fails
+                conn.rollback();
+
+                response.setStatus(500);
+
+                out.println(
+                "<h3>Transaction rollback: "
+                + e.getMessage()
+                + "</h3>"
+                );
+
+
+            } finally {
+
+                conn.close();
+
+            }
+        } catch (Exception e) {
+            out.println("<h3>Error: " + e.getMessage() + "</h3>");
+        }
     }
-}
+
 %>
-<br>
-<a href="viewstudents.jsp">Back to Students</a>
-</body>
+        <br>
+        <a href="viewstudents.jsp">Back to Students</a>
+    </body>
 </html>
