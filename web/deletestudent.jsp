@@ -22,6 +22,11 @@
     if (error != null) {
         out.println("<h3>Rejected: " + error + "</h3>");
     } else {
+        Boolean safetySuspended = (Boolean) application.getAttribute("safety_suspended");
+        if (safetySuspended != null && safetySuspended) {
+            out.println("<p style='color:orange;'><strong>Notice:</strong> System is currently safety-suspended. Deletions are permitted as safety-recovering operations to reduce room occupancy.</p>");
+        }
+
         String url = "jdbc:mysql://localhost:3306/universitydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
         String user = "root";
         String password = "root123";

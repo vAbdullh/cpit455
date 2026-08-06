@@ -31,6 +31,72 @@
 
         <h2>Student List</h2>
 
+        <%
+    Boolean safetySuspended = (Boolean) application.getAttribute("safety_suspended");
+    if (safetySuspended == null) safetySuspended = false;
+
+    int currentOccupancy = 0;
+    String urlCount = "jdbc:mysql://localhost:3306/universitydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+    String backupUrlCount = "jdbc:mysql://localhost:3306/universitydb_backup?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+    String userCount = "root";
+    String passwordCount = "root123";
+    Connection connCount = null;
+    try {
+        Class.forName("com.mysql.cj.jdbc.Driver");
+        try {
+            connCount = DriverManager.getConnection(urlCount, userCount, passwordCount);
+        } catch (Exception e) {
+            connCount = DriverManager.getConnection(backupUrlCount, userCount, passwordCount);
+        }
+        Statement s = connCount.createStatement();
+        ResultSet r = s.executeQuery("SELECT COUNT(*) FROM student");
+        if (r.next()) {
+            currentOccupancy = r.getInt(1);
+        }
+        r.close();
+        s.close();
+    } catch (Exception e) {
+        currentOccupancy = 20;
+        // Safe fallback
+    } finally {
+        if (connCount != null) {
+            try {
+                connCount.close();
+            } catch (Exception se) {
+            }
+        }
+    }
+
+%>
+
+        <%
+    if (safetySuspended) {
+
+%>
+        <div style="background-color:#fee2e2; border:1px solid #ef4444; color:#991b1b; padding:15px; border-radius:5px; margin-bottom:15px;">
+            <strong>⚠️ Safety Alert:</strong> System is currently safety-suspended due to a safety violation (e.g., attempt to enroll without safety training or exceeding capacity).
+            New registrations are blocked. <a href="monitor.jsp" style="color:#b91c1c; font-weight:bold; text-decoration:underline;">Go to Safety Monitor & Reset</a>
+        </div>
+        <% } %>
+
+        <div style="background-color:#f3f4f6; border:1px solid #d1d5db; padding:10px 15px; border-radius:5px; margin-bottom:20px; display:inline-block;">
+            Room Occupancy: <strong><%= currentOccupancy %></strong> / 20
+            <%
+    if (currentOccupancy >= 20) {
+
+%>
+            <span style="color:#b91c1c; font-weight:bold;">[ROOM IS FULL]</span>
+            <%
+
+    } else {
+
+%>
+            <span style="color:#15803d;">[SAFE]</span>
+            <% } %>
+        </div>
+
+        <br>
+
         <form method="GET" action="viewstudents.jsp">
             Search Name:
             <input type="text" name="search" value="<%= request.getParameter("search") != null ? request.getParameter("search") : "" %>">
@@ -176,6 +242,10 @@
 
         <a href="addstudent.jsp">
             Add New Student
+        </a>
+        |
+        <a href="monitor.jsp">
+            Self-Monitoring & Safety Control
         </a>
 
     </body>

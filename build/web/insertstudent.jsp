@@ -29,6 +29,14 @@
     if (error != null) {
         out.println("<h3>Rejected: " + error + "</h3>");
     } else {
+        // SSR6: Block if the system is suspended
+        Boolean safetySuspended = (Boolean) application.getAttribute("safety_suspended");
+        if (safetySuspended != null && safetySuspended) {
+            out.println("<h3 style='color:red;'>System suspended awaiting reset</h3>");
+            out.println("<br><a href='viewstudents.jsp'>Back to Students</a> | <a href='monitor.jsp'>Safety Monitor</a>");
+            return;
+        }
+
         String url = "jdbc:mysql://localhost:3306/universitydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
         String user = "root";
         String password = "root123";
@@ -61,7 +69,51 @@
                 dupCheck.close();
             }
 
-            if (!permitted) {
+            // ---- Safety Monitor & Clamp (occupancy and training checks) ----
+            int currentOccupancy = 20; // safe default on failure
+            try {
+                PreparedStatement occCheck = conn.prepareStatement("SELECT COUNT(*) FROM student");
+                ResultSet occRs = occCheck.executeQuery();
+                if (occRs.next()) {
+                    currentOccupancy = occRs.getInt(1);
+                }
+                occRs.close();
+                occCheck.close();
+            } catch (Exception e) {
+                // Guarded Compute fail-safe logic: keep occupancy as 20 so it fails enrollment
+            }
+
+            boolean hasTraining = "true".equals(request.getParameter("safety_training"));
+            boolean safetyViolation = false;
+            String alarmReason = null;
+
+            if (!hasTraining) {
+                safetyViolation = true;
+                alarmReason = "No safety training";
+            } else if (currentOccupancy >= 20) {
+                safetyViolation = true;
+                alarmReason = "Room capacity exceeded";
+            }
+
+            if (safetyViolation) {
+                // Log safety hazard alarm and suspend
+                application.setAttribute("safety_suspended", true);
+                
+                try {
+                    String logPath = application.getRealPath("/") + "safety_hazard.log";
+                    java.io.FileWriter fw = new java.io.FileWriter(logPath, true);
+                    java.io.PrintWriter pw = new java.io.PrintWriter(fw);
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    pw.println("[" + sdf.format(new java.util.Date()) + "] ALARM: Attempted registration for student (Email: " + email + ") rejected. Reason: " + alarmReason + " -> SYSTEM SUSPENDED");
+                    pw.close();
+                } catch (Exception logEx) {
+                    // Ignore or standard err
+                }
+                
+                conn.rollback();
+                out.println("<h3 style='color:red;'>VETOED BY SAFETY MONITOR: " + alarmReason + " -> SYSTEM SUSPENDED</h3>");
+                out.println("<br><a href='monitor.jsp'>Go to Self-Monitoring & Safety Control</a>");
+            } else if (!permitted) {
                 conn.rollback();
                 out.println("<h3>Vetoed by protection system: " + vetoReason + "</h3>");
             } else {
