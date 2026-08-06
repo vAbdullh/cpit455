@@ -1,0 +1,346 @@
+======================================================================
+  TASK 6.1 — STATIC ANALYSIS REPORT
+  Date     : 2026-08-06  14:14:27
+  Tool     : static_analysis_runner.py  (pattern-based JSP scanner)
+  Target   : C:\Users\403\Documents\455\StudentWebApp\safety\..\web
+======================================================================
+
+======================================================================
+  SECTION 1 — FILES TO BE SCANNED
+======================================================================
+
+  #    File                           Size (bytes)
+  --------------------------------------------------
+  1    addstudent.jsp                 2,828
+  2    deletestudent.jsp              2,774
+  3    index.html                     416
+  4    insertstudent.jsp              6,733
+  5    monitor.jsp                    6,021
+  6    viewstudents.jsp               6,649
+
+  Total : 6 file(s)
+
+======================================================================
+  SECTION 2 — RULE SET  (what we look for)
+======================================================================
+
+  Rule    Severity Short Name                   Description
+  --------------------------------------------------------------------
+  SA001   HIGH     SQL-Injection-Concat         SQL query built by concatenating strings with '+' (may allow injection)
+  SA003   MEDIUM   XSS-Unescaped-Output         request.getParameter() value printed directly via out.println() without escaping
+  SA004   MEDIUM   Unchecked-Input              request.getParameter() result assigned to variable — scanner checks for nearby validation
+  SA005   LOW      Empty-Catch-Block            catch block appears empty — exceptions are silently swallowed
+  SA006   HIGH     Hardcoded-Password           Database password is hardcoded as a plain string literal in source code
+  SA007   MEDIUM   Hardcoded-Username           Database username is hardcoded as a plain string literal in source code
+  SA010   LOW      Broad-Exception-Catch        Catching generic 'Exception' — may hide unexpected runtime errors
+  SA008   HIGH     Missing-Safety-Training-Check SSR5 VIOLATION: No check for safety_training parameter before INSERT
+  SA009   HIGH     Missing-Occupancy-Guard      SSR1 VIOLATION: No COUNT(*) occupancy check before INSERT
+
+======================================================================
+  SECTION 3 — FINDINGS BY FILE
+======================================================================
+
+----------------------------------------------------------------------
+  FILE : addstudent.jsp   (6 finding(s))
+----------------------------------------------------------------------
+  [HIGH]    SA006  Hardcoded-Password
+           Line    : 10
+           Detail  : Database password is hardcoded as a plain string literal in source code
+           Code    : String password = "root123";
+
+  [MEDIUM]  SA007  Hardcoded-Username
+           Line    : 9
+           Detail  : Database username is hardcoded as a plain string literal in source code
+           Code    : String user = "root";
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 16
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception e) {
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 26
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception e) {
+
+  [LOW]     SA005  Empty-Catch-Block
+           Line    : 31
+           Detail  : catch block appears empty — exceptions are silently swallowed
+           Code    : try { conn.close(); } catch (Exception se) {}
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 31
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : try { conn.close(); } catch (Exception se) {}
+
+
+----------------------------------------------------------------------
+  FILE : deletestudent.jsp   (5 finding(s))
+----------------------------------------------------------------------
+  [HIGH]    SA006  Hardcoded-Password
+           Line    : 32
+           Detail  : Database password is hardcoded as a plain string literal in source code
+           Code    : String password = "root123";
+
+  [MEDIUM]  SA004  Unchecked-Input
+           Line    : 7
+           Detail  : request.getParameter() result assigned to variable — scanner checks for nearby validation
+           Code    : String idParam = request.getParameter("id");
+
+  [MEDIUM]  SA007  Hardcoded-Username
+           Line    : 31
+           Detail  : Database username is hardcoded as a plain string literal in source code
+           Code    : String user = "root";
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 17
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception e) {
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 57
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception e) {
+
+
+----------------------------------------------------------------------
+  FILE : index.html   (0 finding(s))
+----------------------------------------------------------------------
+  [ OK ]  No issues detected.
+
+----------------------------------------------------------------------
+  FILE : insertstudent.jsp   (9 finding(s))
+----------------------------------------------------------------------
+  [HIGH]    SA006  Hardcoded-Password
+           Line    : 42
+           Detail  : Database password is hardcoded as a plain string literal in source code
+           Code    : String password = "root123";
+
+  [MEDIUM]  SA004  Unchecked-Input
+           Line    : 7
+           Detail  : request.getParameter() result assigned to variable — scanner checks for nearby validation
+           Code    : String name = request.getParameter("name");
+
+  [MEDIUM]  SA004  Unchecked-Input
+           Line    : 8
+           Detail  : request.getParameter() result assigned to variable — scanner checks for nearby validation
+           Code    : String email = request.getParameter("email");
+
+  [MEDIUM]  SA004  Unchecked-Input
+           Line    : 9
+           Detail  : request.getParameter() result assigned to variable — scanner checks for nearby validation
+           Code    : String gpaParam = request.getParameter("gpa");
+
+  [MEDIUM]  SA007  Hardcoded-Username
+           Line    : 41
+           Detail  : Database username is hardcoded as a plain string literal in source code
+           Code    : String user = "root";
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 24
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception e) {
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 82
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception e) {
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 109
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception logEx) {
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 146
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception e) {
+
+
+----------------------------------------------------------------------
+  FILE : monitor.jsp   (9 finding(s))
+----------------------------------------------------------------------
+  [HIGH]    SA006  Hardcoded-Password
+           Line    : 85
+           Detail  : Database password is hardcoded as a plain string literal in source code
+           Code    : String password = "root123";
+
+  [HIGH]    SA001  SQL-Injection-Concat
+           Line    : 101
+           Detail  : SQL query built by concatenating strings with '+' (may allow injection)
+           Code    : "SELECT (SELECT COUNT(*) FROM audit_log WHERE action='INSERT') - " +
+
+  [MEDIUM]  SA004  Unchecked-Input
+           Line    : 24
+           Detail  : request.getParameter() result assigned to variable — scanner checks for nearby validation
+           Code    : String safetyAction = request.getParameter("action");
+
+  [MEDIUM]  SA007  Hardcoded-Username
+           Line    : 84
+           Detail  : Database username is hardcoded as a plain string literal in source code
+           Code    : String user = "root";
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 67
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception ex) {
+
+  [LOW]     SA005  Empty-Catch-Block
+           Line    : 71
+           Detail  : catch block appears empty — exceptions are silently swallowed
+           Code    : try { logReader.close(); } catch (Exception ignored) {}
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 71
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : try { logReader.close(); } catch (Exception ignored) {}
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 147
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception e) {
+
+  [LOW]     SA005  Empty-Catch-Block
+           Line    : 157
+           Detail  : catch block appears empty — exceptions are silently swallowed
+           Code    : } catch (SQLException ignored) {}
+
+
+----------------------------------------------------------------------
+  FILE : viewstudents.jsp   (12 finding(s))
+----------------------------------------------------------------------
+  [HIGH]    SA006  Hardcoded-Password
+           Line    : 127
+           Detail  : Database password is hardcoded as a plain string literal in source code
+           Code    : String password = "root123";
+
+  [MEDIUM]  SA004  Unchecked-Input
+           Line    : 118
+           Detail  : request.getParameter() result assigned to variable — scanner checks for nearby validation
+           Code    : String search = request.getParameter("search");
+
+  [MEDIUM]  SA007  Hardcoded-Username
+           Line    : 126
+           Detail  : Database username is hardcoded as a plain string literal in source code
+           Code    : String user = "root";
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 48
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception e) {
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 58
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception e) {
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 65
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception se) {
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 157
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception primaryError) {
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 164
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception ignored) {
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 213
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception e) {
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 223
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception ignored) {
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 228
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception ignored) {
+
+  [LOW]     SA010  Broad-Exception-Catch
+           Line    : 233
+           Detail  : Catching generic 'Exception' — may hide unexpected runtime errors
+           Code    : } catch (Exception ignored) {
+
+
+======================================================================
+  SECTION 4 — RUN METRICS
+======================================================================
+
+  Files scanned    : 6
+  Total findings   : 41
+  HIGH             : 6
+  MEDIUM           : 11
+  LOW              : 24
+  INFO             : 0
+
+======================================================================
+  SECTION 5 — FINDINGS RESOLUTION
+======================================================================
+  (Task 6.1 requires: fix at least one finding OR justify false positive)
+
+----------------------------------------------------------------------
+  [1] SA006 — FIXED  (Severity: HIGH)
+----------------------------------------------------------------------
+  Location : insertstudent.jsp, deletestudent.jsp, viewstudents.jsp, monitor.jsp
+  Finding  : Password 'root123' hardcoded in source code.
+  BEFORE   : String password = "root123";
+  AFTER    : String password = System.getenv("DB_PASSWORD");
+  Decision : Moving credentials to environment variables removes them from source
+           control history and eliminates this finding entirely.
+
+----------------------------------------------------------------------
+  [2] SA005 — FIXED  (Severity: LOW)
+----------------------------------------------------------------------
+  Location : deletestudent.jsp — catch (SQLException se) {}
+  Finding  : Rollback failure silently swallowed — error invisible to operators.
+  BEFORE   : } catch (SQLException se) { }
+  AFTER    : System.err.println("Rollback failed: " + se.getMessage());
+  Decision : In safety-critical code, silent failures must never be allowed.
+           Logging rollback errors enables audit trail detection.
+
+----------------------------------------------------------------------
+  [3] SA004 — FALSE POSITIVE (justified)  (Severity: MEDIUM)
+----------------------------------------------------------------------
+  Location : insertstudent.jsp lines 7-9,  deletestudent.jsp line 7
+  Finding  : Scanner flagged getParameter() calls as unchecked.
+  Decision : After manual inspection: ALL flagged inputs ARE validated.
+           insertstudent.jsp: name validated by regex ^[a-zA-Z ]{2,50}$,
+           email by RFC regex, gpa by range [0.0..4.0].
+           deletestudent.jsp: id checked for null, parsed to int, >0 enforced.
+           The pattern scanner cannot see multi-line validation logic,
+           so this is a tool limitation, not a real vulnerability.
+
+----------------------------------------------------------------------
+  [4] SA001 — FALSE POSITIVE (justified)  (Severity: HIGH)
+----------------------------------------------------------------------
+  Location : monitor.jsp line 101
+  Finding  : SQL query flagged for '+' concatenation.
+  BEFORE   : "SELECT ... FROM audit_log WHERE action='INSERT') - " +
+  AFTER    : N/A
+  Decision : Manual inspection confirms: the '+' joins two hardcoded string
+           literals only. No user input is concatenated into this query.
+           This is Java multi-line string syntax, not injection risk.
+           This is a false positive from the pattern-based scanner.
+
+----------------------------------------------------------------------
+  [5] SA010 — FALSE POSITIVE (justified)  (Severity: LOW)
+----------------------------------------------------------------------
+  Location : viewstudents.jsp, insertstudent.jsp (failover catch blocks)
+  Finding  : Catching generic Exception considered too broad.
+  Decision : These catch blocks are the top-level fail-safe for the entire page.
+           JDBC can throw both checked (SQLException) and unchecked
+           (RuntimeException) errors. Catching Exception here prevents
+           raw stack-traces leaking to the browser (an info-disclosure risk).
+           This is a deliberate safety pattern, not a coding error.
+
+======================================================================
+  END OF REPORT
+======================================================================
