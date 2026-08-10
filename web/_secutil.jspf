@@ -1,0 +1,163 @@
+<%!
+    // ============================================================
+    // SECURITY UTILITY FUNCTIONS
+    // ============================================================
+
+    // 15 minute session timeout
+    static final long SESSION_TIMEOUT_MS =
+        15L * 60L * 1000L;
+
+
+    // ============================================================
+    // HTML ESCAPE
+    // ============================================================
+
+    String esc(String value) {
+
+        if (value == null) {
+            return "";
+        }
+
+        return value
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#39;");
+    }
+
+
+    // ============================================================
+    // SECURITY AUDIT
+    // ============================================================
+
+    void secAudit(
+        javax.servlet.ServletContext app,
+        String user,
+        String ip,
+        String action,
+        String detail
+    ) {
+
+        java.io.File logFile =
+            new java.io.File(
+                app.getRealPath("/")
+                + "security_audit.log"
+            );
+
+        java.io.PrintWriter pw = null;
+
+        try {
+
+            pw = new java.io.PrintWriter(
+                new java.io.FileWriter(
+                    logFile,
+                    true
+                )
+            );
+
+            String timestamp =
+                new java.text.SimpleDateFormat(
+                    "yyyy-MM-dd'T'HH:mm:ss'Z'"
+                ).format(
+                    new java.util.Date()
+                );
+
+            pw.printf(
+                "%s user=%s ip=%s action=%s %s%n",
+                timestamp,
+                user == null ? "unknown" : user,
+                ip == null ? "unknown" : ip,
+                action == null ? "UNKNOWN" : action,
+                detail == null ? "" : detail
+            );
+
+        } catch (Exception ignored) {
+
+            // Do not expose logging errors.
+
+        } finally {
+
+            if (pw != null) {
+                pw.close();
+            }
+        }
+    }
+%>
+
+
+<%
+    // ============================================================
+    // SESSION INFORMATION
+    // ============================================================
+
+    String _secUser =
+        (String) session.getAttribute("username");
+
+    String _secRole =
+        (String) session.getAttribute("role");
+
+
+    // ============================================================
+    // AUTHENTICATION CHECK
+    // ============================================================
+
+    if (_secUser == null || _secUser.trim().isEmpty()) {
+
+        response.sendRedirect("login.jsp");
+        return;
+    }
+
+
+    // ============================================================
+    // ROLE CHECKS
+    // ============================================================
+
+    boolean _isAdminOp =
+        "admin".equalsIgnoreCase(_secRole);
+
+    boolean _isSafety =
+        "safety".equalsIgnoreCase(_secRole)
+        || "safety_officer".equalsIgnoreCase(_secRole)
+        || _isAdminOp;
+
+
+    // ============================================================
+    // SESSION TIMEOUT
+    // ============================================================
+
+    Object loginTimeObj =
+        session.getAttribute("loginTime");
+
+    if (loginTimeObj instanceof Long) {
+
+        long loginTime =
+            ((Long) loginTimeObj).longValue();
+
+        long elapsed =
+            System.currentTimeMillis() - loginTime;
+
+        if (elapsed > SESSION_TIMEOUT_MS) {
+
+            secAudit(
+                application,
+                _secUser,
+                request.getRemoteAddr(),
+                "SESSION_EXPIRED",
+                ""
+            );
+
+            session.invalidate();
+
+            response.sendRedirect("login.jsp");
+            return;
+        }
+    }
+
+
+    // ============================================================
+    // KEEP SESSION TIMEOUT ENFORCED
+    // ============================================================
+
+    session.setMaxInactiveInterval(15 * 60);
+%>
