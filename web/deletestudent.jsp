@@ -13,6 +13,25 @@
     String error   = null;
     int    id      = 0;
 
+    // TASK 5: Non-critical service — refuse during degraded mode
+    String _wdState = (String) application.getAttribute("watchdog_state");
+    if ("DOWN".equals(_wdState)) {
+        out.println("<html><head><title>Service Suspended</title></head><body>");
+        out.println("<h2>Service Suspended</h2>");
+        out.println("<div style='background:#f8d7da;color:#721c24;padding:15px;"
+                  + "border:2px solid #c00;border-radius:4px;width:80%;'>");
+        out.println("<strong>&#9888;&#65039; DEGRADED MODE</strong><br>");
+        out.println("Delete is a <strong>non-critical service</strong> and is "
+                  + "suspended while the system is degraded.<br>");
+        out.println("Student records are preserved. Please retry when "
+                  + "normal service resumes.</div>");
+        out.println("<br><a href='viewstudents.jsp'>Back to Students</a>");
+        out.println("</body></html>");
+        secAudit(application, _secUser, request.getRemoteAddr(),
+                 "DEGRADED_REFUSE", "action=deletestudent (non-critical suspended)");
+        return;
+    }
+
     // SECGUIDE-7 / SEC3: validate student_id format
     if (idParam == null || idParam.trim().isEmpty()) {
         error = "Student ID is required";
