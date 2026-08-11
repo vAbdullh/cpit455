@@ -129,4 +129,6 @@
     </tbody>
 </table>
 <br><a href="viewstudents.jsp">Back to Students</a>
+ | <a href="watchdog.jsp">Server Watchdog</a>
+ | <a href="integrity.jsp">Integrity Checker</a>
 </body></html>
