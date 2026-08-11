@@ -131,4 +131,5 @@
 <br><a href="viewstudents.jsp">Back to Students</a>
  | <a href="watchdog.jsp">Server Watchdog</a>
  | <a href="integrity.jsp">Integrity Checker</a>
+ | <a href="reinstatement.jsp">Reinstatement</a>
 </body></html>

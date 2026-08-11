@@ -12,6 +12,10 @@
     Boolean safetySuspended = (Boolean) application.getAttribute("safety_suspended");
     if (safetySuspended == null) safetySuspended = false;
 
+    // TASK 5: Check degraded mode — add student is 'important', not critical
+    String _wdState = (String) application.getAttribute("watchdog_state");
+    boolean _isDegradedMode = "DOWN".equals(_wdState);
+
     int currentOccupancy = 0;
     Connection conn = null;
     try {
@@ -29,7 +33,7 @@
         if (conn != null) try { conn.close(); } catch (Exception ignored) {}
     }
     boolean isFull    = currentOccupancy >= 20;
-    boolean cannotAdd = safetySuspended || isFull;
+    boolean cannotAdd = safetySuspended || isFull || _isDegradedMode;
 %>
 <!DOCTYPE html>
 <html lang="en">
@@ -37,6 +41,13 @@
     <body>
         <h2>Add New Student</h2>
         <p>Signed in as: <strong><%= esc(_secUser) %></strong> | <a href="logout.jsp">Logout</a></p>
+        <% if (_isDegradedMode) { %>
+            <div style="background:#f8d7da;color:#721c24;padding:15px;border:2px solid #c00;border-radius:4px;margin-bottom:15px;">
+                <strong>&#9888;&#65039; DEGRADED MODE</strong><br>
+                Database is unavailable. New student registration is temporarily suspended.<br>
+                Please retry when normal service resumes.
+            </div>
+        <% } %>
         <p>Current Occupancy: <strong><%= currentOccupancy %></strong> / 20</p>
         <% if (safetySuspended) { %>
             <h3 style="color:red;">WARNING: System suspended. Cannot register new students.</h3>

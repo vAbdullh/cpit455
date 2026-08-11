@@ -1,4 +1,4 @@
-<%@ page import="java.sql.*" %>
+<%@ page import="java.sql.*, java.util.*, java.text.SimpleDateFormat" %>
 <%@ include file="_secutil.jspf" %>
 
 <!DOCTYPE html>
@@ -309,6 +309,10 @@
             ResultSet rs = null;
 
             boolean usingBackup = false;
+            boolean isDegraded = false;
+
+            // List to hold student data for caching and display
+            List<Map<String,String>> studentRows = new ArrayList<>();
 
             try {
 
@@ -446,109 +450,54 @@
 
 
                 // =================================================
-                // STUDENTS
+                // STUDENTS — read from DB and cache in session
                 // =================================================
-
-                boolean foundStudents = false;
 
                 while (rs.next()) {
-
-                    foundStudents = true;
-
-                    double gpa =
-                        rs.getDouble("gpa");
-
-        %>
-
-
-        <tr>
-
-            <td>
-                <%= rs.getInt("student_id") %>
-            </td>
-
-
-            <td>
-                <%= esc(
-                    rs.getString("name")
-                ) %>
-            </td>
-
-
-            <% if (_isAdminOp || _isSafety) { %>
-
-                <td>
-                    <%= esc(
-                        rs.getString("email")
-                    ) %>
-                </td>
-
-            <% } %>
-
-
-            <td
-                class="<%= gpa < 3.50 ? "low-gpa" : "" %>"
-            >
-                <%= gpa %>
-            </td>
-
-        </tr>
-
-
-        <%
-
+                    Map<String,String> row = new HashMap<>();
+                    row.put("student_id", String.valueOf(rs.getInt("student_id")));
+                    row.put("name", rs.getString("name"));
+                    row.put("email", rs.getString("email"));
+                    row.put("gpa", String.valueOf(rs.getDouble("gpa")));
+                    studentRows.add(row);
                 }
 
-
-                // =================================================
-                // NO RESULTS
-                // =================================================
-
-                if (!foundStudents) {
-
-        %>
-
-        <tr>
-
-            <td
-                colspan="<%= (_isAdminOp || _isSafety) ? 4 : 3 %>"
-            >
-                No students found.
-            </td>
-
-        </tr>
-
-        <%
-
+                // ================================================
+                // CACHE: store critical summary in session (Task 5)
+                // Only cache when NOT searching (full dataset)
+                // ================================================
+                if (search == null || search.trim().isEmpty()) {
+                    session.setAttribute("cached_students", studentRows);
+                    session.setAttribute("cache_time", System.currentTimeMillis());
                 }
+
 
             } catch (Exception e) {
 
-                // Do not expose exception details to browser.
+                // =================================================
+                // DEGRADED MODE (Task 5): both DBs unavailable
+                // Serve from session-scoped local cache
+                // =================================================
 
                 secAudit(
                     application,
                     _secUser,
                     request.getRemoteAddr(),
-                    "INTERNAL_ERROR",
-                    "viewstudents"
+                    "DEGRADED_MODE",
+                    "viewstudents — serving from local cache"
                 );
 
-        %>
+                List<Map<String,String>> cached =
+                    (List<Map<String,String>>) session.getAttribute("cached_students");
+                Long cacheTime = (Long) session.getAttribute("cache_time");
 
-        <tr>
+                if (cached != null && cacheTime != null) {
+                    isDegraded = true;
+                    studentRows = cached;
 
-            <td
-                colspan="<%= (_isAdminOp || _isSafety) ? 4 : 3 %>"
-            >
-                <b>
-                    Error retrieving students.
-                </b>
-            </td>
-
-        </tr>
-
-        <%
+                    // Mark watchdog state as DOWN
+                    application.setAttribute("watchdog_state", "DOWN");
+                }
 
             } finally {
 
@@ -581,6 +530,83 @@
                 } catch (Exception ignored) {
                 }
             }
+
+
+            // =====================================================
+            // DEGRADED MODE BANNER (Task 5 resilience rule)
+            // Data MUST be visibly marked as degraded with its age
+            // =====================================================
+            if (isDegraded) {
+                Long cacheTime = (Long) session.getAttribute("cache_time");
+                long ageMs = System.currentTimeMillis() - cacheTime;
+                long ageSec = ageMs / 1000;
+                String ageText;
+                if (ageSec < 60) ageText = ageSec + " seconds";
+                else if (ageSec < 3600) ageText = (ageSec / 60) + " minutes";
+                else ageText = String.format("%.1f hours", ageSec / 3600.0);
+        %>
+
+        <div style="background:#f8d7da;color:#721c24;padding:15px;border:2px solid #c00;margin-bottom:15px;border-radius:4px;width:80%;box-sizing:border-box;">
+            <strong>⚠️ DEGRADED MODE</strong><br>
+            Both primary and backup databases are unavailable.<br>
+            Showing <strong>cached data</strong> from <strong><%= ageText %> ago</strong>.<br>
+            This data may not reflect recent changes. Non-critical services are suspended.
+        </div>
+
+        <%
+            }
+
+
+            // =====================================================
+            // RENDER STUDENT ROWS (from DB or cache)
+            // =====================================================
+
+            if (studentRows.isEmpty()) {
+        %>
+
+        <tr>
+            <td
+                colspan="<%= (_isAdminOp || _isSafety) ? 4 : 3 %>"
+            >
+                <%= isDegraded ? "No cached data available." : "No students found." %>
+            </td>
+        </tr>
+
+        <%
+            } else {
+                for (Map<String,String> row : studentRows) {
+                    double gpa = Double.parseDouble(row.get("gpa"));
+        %>
+
+        <tr>
+
+            <td>
+                <%= esc(row.get("student_id")) %>
+            </td>
+
+            <td>
+                <%= esc(row.get("name")) %>
+            </td>
+
+            <% if ((_isAdminOp || _isSafety) && !isDegraded) { %>
+
+                <td>
+                    <%= esc(row.get("email")) %>
+                </td>
+
+            <% } %>
+
+            <td
+                class="<%= gpa < 3.50 ? "low-gpa" : "" %>"
+            >
+                <%= gpa %>
+            </td>
+
+        </tr>
+
+        <%
+                }
+            }
         %>
 
     </table>
@@ -589,7 +615,7 @@
     <br>
 
 
-    <% if (_isAdminOp) { %>
+    <% if (_isAdminOp && !isDegraded) { %>
 
         <a href="addstudent.jsp">
             Add New Student
